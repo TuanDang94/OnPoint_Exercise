@@ -1,0 +1,9 @@
+{application,exercise1,
+             [{applications,[kernel,stdlib,elixir,logger,httpoison]},
+              {description,"exercise1"},
+              {modules,['Elixir.Exercise1','Elixir.Exercise1.Application',
+                        'Elixir.Exercise1.Movie',
+                        'Elixir.Exercise1.MovieCartoonCollection']},
+              {registered,[]},
+              {vsn,"0.1.0"},
+              {mod,{'Elixir.Exercise1.Application',[]}}]}.
