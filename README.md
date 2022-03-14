@@ -10,7 +10,9 @@ by adding `exercise1` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:exercise1, "~> 0.1.0"}
+    {:httpoison, "~> 1.8"},
+    {:floki, "~> 0.26.0"},
+    {:json, "~> 1.4"}
   ]
 end
 ```
