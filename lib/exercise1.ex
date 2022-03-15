@@ -4,6 +4,7 @@ defmodule Exercise1 do
   import Kernel, except: [inspect: 1]
   import IO
 
+  @url "https://ezphimmoi.net/category/hoat-hinh/"
   @doc """
   Struct Movie: collect info movie's
   """
@@ -25,20 +26,19 @@ defmodule Exercise1 do
 
   @doc """
   Function HTTP Client get data from web by URL
-  Parameter "pagenumber": Page number need to get data movie
+  Parameter "page_number": Page number need to get data movie
   """
-  def httpoisonResponse(pagenumber) do
+  def http_poison_response(page_number) do
     # Load page 1, we use url --> "https://ezphimmoi.net/category/hoat-hinh/". If load page 2 to N, we use url --> #"https://ezphimmoi.net/category/hoat-hinh/page/1/"
-    url = "https://ezphimmoi.net/category/hoat-hinh/"
+    url = @url
 
     url =
-      if pagenumber > 1 do
-        url =
-          "https://ezphimmoi.net/category/hoat-hinh/page/" <> Integer.to_string(pagenumber) <> "/"
-      else
-        url = "https://ezphimmoi.net/category/hoat-hinh/"
-      end
-
+      if page_number > 1,
+        do:
+          @url <> "page/" <>
+            Integer.to_string(page_number) <> "/",
+        else: @url
+    inspect url
     """
     HTTPoison is used to get crawl data from web
     """
@@ -46,18 +46,7 @@ defmodule Exercise1 do
     """
     Floki is used to parse data HTML
     """
-    {:ok, document} =
-      case HTTPoison.get(url) do
-        {:ok, %HTTPoison.Response{body: body, status_code: 200}} ->
-          {:ok, document} = Floki.parse_document(body)
-
-        _ ->
-          {:ok, nil}
-      end
-
-    if is_nil(document) do
-      inspect("Page not found")
-    else
+    with {:ok, document} <- get_body_response(url) do
       """
       Get list film name
       """
@@ -131,7 +120,8 @@ defmodule Exercise1 do
         |> Floki.attribute("style")
         # |> Enum.map(&Floki.text/1)
         |> Enum.map(fn title -> elem(Enum.fetch(String.split(title, "'"), 1), 1) end)
-        # |> Enum.map(&(Enum.fetch(&1,1)))     #|> Enum.map(fn title -> Enum.fetch(title,1) end)
+
+      # |> Enum.map(&(Enum.fetch(&1,1)))     #|> Enum.map(fn title -> Enum.fetch(title,1) end)
 
       """
       Collect film to list movies
@@ -152,55 +142,52 @@ defmodule Exercise1 do
             item = %{item | full_series: elem(Enum.fetch(filmIsFullSeries, x), 1)}
           end
         )
+    else
+      error ->
+        inspect("Page not found #{error}")
+        0
+    end
+  end
+
+  def get_body_response(url) do
+    case HTTPoison.get(url) do
+      {:ok, %HTTPoison.Response{body: body, status_code: 200}} ->
+        {:ok, document} = Floki.parse_document(body)
+      _ ->
+        {:error, nil}
     end
   end
 
   @doc """
   Function get max page, need to loop For to get data movie page by page
   """
-  def getMaxPage do
-    url = "https://ezphimmoi.net/category/hoat-hinh/"
-
+  def get_max_page do
     """
     HTTPoison is used to get crawl data from web
     """
 
-    {:ok, document} =
-      case HTTPoison.get(url) do
-        {:ok, %HTTPoison.Response{body: body, status_code: 200}} ->
-          {:ok, document} = Floki.parse_document(body)
-
-        _ ->
-          {:ok, nil}
-      end
-
-    maxpage = if is_nil(document) do
-        inspect("Page not found")
-        maxpage = 0
-    else
-      """
-      Get list pagination
-      """
-      """
-      Floki is used to parse data HTML
-      """
+    with {:ok, document} <- get_body_response(@url) do
       pagination =
         document
         |> Floki.find("ul.pagination>li")
         |> Enum.map(&Floki.text/1)
 
-      numberpage = elem(Enum.fetch(pagination, Enum.count(pagination) - 2), 1)
-      maxpage = String.to_integer(numberpage)
+      numberpage = Enum.fetch(pagination, Enum.count(pagination) - 2) |> elem(1)
+      String.to_integer(numberpage)
+    else
+      error ->
+        inspect("Page not found #{error}")
+        0
     end
-
   end
 
   @doc """
   Main function: crawl data, format data and write data to file by format JSon
   """
-  def crawlyMovie do
-    maxpage = getMaxPage
-    inspect maxpage
+  def crawly_movie do
+    maxpage = get_max_page
+    inspect(maxpage)
+
     if maxpage == 0 do
       inspect("Page not found")
     else
@@ -208,7 +195,7 @@ defmodule Exercise1 do
 
       movieCollections =
         for x <- 1..maxpage do
-          dataRespone = httpoisonResponse(x)
+          dataRespone = http_poison_response(x)
         end
 
       movieCollections = List.flatten(movieCollections)
@@ -224,13 +211,15 @@ defmodule Exercise1 do
       cartoonCollection = %{cartoonCollection | items: movieCollections}
 
       # Code convert data to JSon string
-      listdata = convertStruct2List(cartoonCollection)
-      inspect(listdata)
+      # listdata = convertStruct2List(cartoonCollection)
+      # inspect(listdata)
 
-      {status, result} = JSON.encode(listdata)
-
-      writeData2File(result)
-
+      with {:ok, result} <- cartoonCollection |> convertStruct2List() |> JSON.encode() do
+        writeData2File(result)
+      else
+        err ->
+          inspect(err)
+      end
     end
   end
 
@@ -248,7 +237,7 @@ defmodule Exercise1 do
   paramter "structer": Struct object need to convert to list object
   """
   def convertStruct2List(structer) do
-    listMovie = [
+    [
       crawled_at: structer.crawled_at,
       total: structer.total,
       items:
