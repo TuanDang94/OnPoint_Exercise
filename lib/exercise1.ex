@@ -126,25 +126,29 @@ defmodule Exercise1 do
       """
       Collect film to list movies
       """
-
-      movieCollection = [%Movie{}]
-
       movieCollection =
         Enum.map(
           0..(Enum.count(filmName) - 1),
           fn x ->
+            # item = %Movie{}
+            # item = %{item | title: elem(Enum.fetch(filmName, x), 1)}
+            # item = %{item | thumnail: elem(Enum.fetch(filmImage, x), 1)}
+            # item = %{item | link: elem(Enum.fetch(filmURL, x), 1)}
+            # item = %{item | number_of_episode: elem(Enum.fetch(filmEpisode, x), 1)}
+            # item = %{item | year: elem(Enum.fetch(filmYear, x), 1)}
+            # item = %{item | full_series: elem(Enum.fetch(filmIsFullSeries, x), 1)}
             item = %Movie{}
-            item = %{item | title: elem(Enum.fetch(filmName, x), 1)}
-            item = %{item | thumnail: elem(Enum.fetch(filmImage, x), 1)}
-            item = %{item | link: elem(Enum.fetch(filmURL, x), 1)}
-            item = %{item | number_of_episode: elem(Enum.fetch(filmEpisode, x), 1)}
-            item = %{item | year: elem(Enum.fetch(filmYear, x), 1)}
-            item = %{item | full_series: elem(Enum.fetch(filmIsFullSeries, x), 1)}
+            item |> Map.put(:title, elem(Enum.fetch(filmName, x), 1))
+                  |> Map.put(:thumnail, elem(Enum.fetch(filmImage, x), 1))
+                  |> Map.put(:link, elem(Enum.fetch(filmURL, x), 1))
+                  |> Map.put(:number_of_episode, elem(Enum.fetch(filmEpisode, x), 1))
+                  |> Map.put(:year, elem(Enum.fetch(filmYear, x), 1))
+                  |> Map.put(:full_series, elem(Enum.fetch(filmIsFullSeries, x), 1))
           end
         )
     else
       error ->
-        inspect("Page not found #{error}")
+        inspect("Page not found")
         0
     end
   end
@@ -176,7 +180,7 @@ defmodule Exercise1 do
       String.to_integer(numberpage)
     else
       error ->
-        inspect("Page not found #{error}")
+        inspect("Page not found")
         0
     end
   end
