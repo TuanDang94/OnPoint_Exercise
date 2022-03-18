@@ -35,10 +35,13 @@ defmodule Exercise1 do
     url =
       if page_number > 1,
         do:
-          @url <> "page/" <>
+          @url <>
+            "page/" <>
             Integer.to_string(page_number) <> "/",
         else: @url
-    inspect url
+
+    inspect(url)
+
     """
     HTTPoison is used to get crawl data from web
     """
@@ -46,6 +49,7 @@ defmodule Exercise1 do
     """
     Floki is used to parse data HTML
     """
+
     with {:ok, document} <- get_body_response(url) do
       """
       Get list film name
@@ -126,24 +130,20 @@ defmodule Exercise1 do
       """
       Collect film to list movies
       """
+
       movieCollection =
         Enum.map(
           0..(Enum.count(filmName) - 1),
           fn x ->
-            # item = %Movie{}
-            # item = %{item | title: elem(Enum.fetch(filmName, x), 1)}
-            # item = %{item | thumnail: elem(Enum.fetch(filmImage, x), 1)}
-            # item = %{item | link: elem(Enum.fetch(filmURL, x), 1)}
-            # item = %{item | number_of_episode: elem(Enum.fetch(filmEpisode, x), 1)}
-            # item = %{item | year: elem(Enum.fetch(filmYear, x), 1)}
-            # item = %{item | full_series: elem(Enum.fetch(filmIsFullSeries, x), 1)}
             item = %Movie{}
-            item |> Map.put(:title, elem(Enum.fetch(filmName, x), 1))
-                  |> Map.put(:thumnail, elem(Enum.fetch(filmImage, x), 1))
-                  |> Map.put(:link, elem(Enum.fetch(filmURL, x), 1))
-                  |> Map.put(:number_of_episode, elem(Enum.fetch(filmEpisode, x), 1))
-                  |> Map.put(:year, elem(Enum.fetch(filmYear, x), 1))
-                  |> Map.put(:full_series, elem(Enum.fetch(filmIsFullSeries, x), 1))
+
+            item
+            |> Map.put(:title, elem(Enum.fetch(filmName, x), 1))
+            |> Map.put(:thumnail, elem(Enum.fetch(filmImage, x), 1))
+            |> Map.put(:link, elem(Enum.fetch(filmURL, x), 1))
+            |> Map.put(:number_of_episode, elem(Enum.fetch(filmEpisode, x), 1))
+            |> Map.put(:year, elem(Enum.fetch(filmYear, x), 1))
+            |> Map.put(:full_series, elem(Enum.fetch(filmIsFullSeries, x), 1))
           end
         )
     else
@@ -157,6 +157,7 @@ defmodule Exercise1 do
     case HTTPoison.get(url) do
       {:ok, %HTTPoison.Response{body: body, status_code: 200}} ->
         {:ok, document} = Floki.parse_document(body)
+
       _ ->
         {:error, nil}
     end
@@ -257,5 +258,57 @@ defmodule Exercise1 do
           }
         end)
     ]
+  end
+
+  def http_poison_response_bypage do
+    with {:ok, document} <- get_body_response(@url) do
+      filmName =
+        document
+        |> Floki.find(".movie-list-index .movie-item")
+        |> Enum.map(fn data ->
+          %{
+            title:
+              data
+              |> Floki.attribute("title")
+              |> Enum.map(&Floki.text/1),
+            link:
+              data
+              |> Floki.attribute("href")
+              |> Enum.map(&Floki.text/1),
+            full_series:
+              data
+              |> Floki.find("span.ribbon")
+              |> Enum.map(&Floki.text/1)
+              |> Enum.map(fn title ->
+                if String.contains?(title, ["FULL", "Full"]) do
+                  true
+                else
+                  false
+                end
+              end),
+            number_of_episode:
+              data
+              |> Floki.find("span.ribbon")
+              |> Enum.map(&Floki.text/1),
+            thumnail:
+              data
+              |> Floki.find(".public-film-item-thumb")
+              |> Floki.attribute("data-wpfc-original-src"),
+            year:
+              data
+              |> Floki.find("span.movie-title-2")
+              |> Enum.map(&Floki.text/1)
+              |> Enum.map(fn title ->
+                if String.contains?(title, ["(", ")"]) do
+                  String.slice(title, -5, 4)
+                else
+                  {:error, "No year"}
+                end
+              end)
+          }
+        end)
+
+      # |> Enum.map(&String.replace(&1, ["\n", "\t"], ""))
+    end
   end
 end
